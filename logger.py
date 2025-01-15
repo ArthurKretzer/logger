@@ -2,7 +2,7 @@ import logging
 import os
 
 # Color number definition
-BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, GRAY = range(9)
 
 # These are the sequences need to get colored output
 RESET_SEQ = "\033[0m"
@@ -11,7 +11,7 @@ BOLD_SEQ = "\033[1m"
 
 COLORS = {
     "WARNING": YELLOW,
-    "INFO": WHITE,
+    "INFO": GRAY,
     "DEBUG": BLUE,
     "CRITICAL": RED,
     "ERROR": RED,
@@ -53,7 +53,10 @@ class ColoredFormatter(logging.Formatter):
 
 class log(logging.Logger):
     # Message format with collors \033[1;35m = Magenta
-    FORMAT = "\033[37m%(asctime)s\033[0m [$BOLD%(levelname)-18s$RESET] \033[35m[%(processName)s][%(threadName)s]\033[0m\033[34m[%(module)s]\033[0m \033[34mLine %(lineno)d:\033[0m \033[37m%(message)s\033[0m"
+    FORMAT = "\033[90m%(asctime)s\033[0m [$BOLD%(levelname)-18s$RESET]"
+    FORMAT += "\033[35m[%(processName)s][%(threadName)s]\033[0m\033"
+    FORMAT += "[34m[%(module)s]\033[0m \033[34mLine %(lineno)d:\033"
+    FORMAT += "[0m \033[90m%(message)s\033[0m"
     COLOR_FORMAT = formatter_message(FORMAT, True)
 
     def __init__(self, name="my_logger"):
@@ -64,18 +67,20 @@ class log(logging.Logger):
         if not self.handlers:
             color_formatter = ColoredFormatter(self.COLOR_FORMAT)
             ch = logging.StreamHandler()
-            ch.setLevel(logging.DEBUG)
+            ch.setLevel(os.environ["LOG_LEVEL"])
             # add formatter to ch
             ch.setFormatter(color_formatter)
             # add ch to logger
             self.addHandler(ch)
 
-            os.makedirs("logs", exist_ok=True)
-            log_file = logging.FileHandler(
-                filename=os.getcwd() + f"/logs/{name}.log",
-                mode="w+",
-                encoding="utf8",
-            )
-            log_file.setFormatter(color_formatter)
-            log_file.setLevel(logging.DEBUG)
-            self.addHandler(log_file)
+            store_log = os.getenv("STORE_LOG_LOCALLY", "False")
+            if store_log == "True":
+                os.makedirs("logs", exist_ok=True)
+                log_file = logging.FileHandler(
+                    filename=os.getcwd() + f"/logs/{name}.log",
+                    mode="w+",
+                    encoding="utf8",
+                )
+                log_file.setFormatter(color_formatter)
+                log_file.setLevel(os.environ["LOG_LEVEL"])
+                self.addHandler(log_file)
